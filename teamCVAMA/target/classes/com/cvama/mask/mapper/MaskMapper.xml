@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- namespace 설정 : 중복을 배제시키기 위해서 -->
+<mapper namespace="com.cvama.mask.mapper.MaskMapper">
+	<!-- id는 mapper 인터페이스의 메서드와 맞춰준다. -->
+	<select id="remainList" resultType="com.cvama.mask.dto.SalesDTO">
+		SELECT * FROM(
+			SELECT ROWNUM rnum, no, code, remain_stat, created_at, stock_at
+			FROM(
+				SELECT no, code, remain_stat, created_at, stock_at
+				FROM sales
+				WHERE code=#{code}
+				AND created_at BETWEEN TO_DATE(#{date}) AND TO_DATE(#{date})+1
+				ORDER BY no DESC
+			)
+		)
+	</select>
+	
+	<select id="replyList" resultType="com.cvama.mask.dto.MaskReplyDTO">
+ 		SELECT * FROM (
+ 			SELECT ROWNUM rnum, rno, code, writer, content, ip, writeDate
+ 			FROM (
+ 				SELECT rno, code, writer, content, ip, writeDate
+ 				FROM mask_rep
+ 				WHERE code=#{code}
+ 				ORDER BY rno DESC
+ 			)
+ 		)
+ 		WHERE rnum BETWEEN #{pageObject.startRow} AND #{pageObject.endRow}
+ 	</select>
+  
+  <select id="getTotalRow" resultType="java.lang.Integer">
+ 		SELECT COUNT(*)
+ 		FROM mask_rep
+ 		WHERE code=#{code}
+ 	</select>
+ 	
+ 	<insert id="replyWrite">
+ 		INSERT INTO mask_rep(rno, code, writer, content, pw, ip)
+ 		VALUES(mask_rep_seq.NEXTVAL, #{code}, #{writer}, #{content}, #{pw}, #{ip})
+ 	</insert>
+ 
+	<delete id="replyDelete">
+	 	DELETE FROM mask_rep
+	 	WHERE rno=#{rno} AND pw=#{pw}
+	</delete>
+</mapper>

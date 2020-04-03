@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+	xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
+		id="WebApp_ID" version="3.1">
+	<!-- The definition of the Root Spring Container shared by all Servlets 
+		and Filters -->
+	<context-param>
+		<param-name>contextConfigLocation</param-name>
+		<param-value>/WEB-INF/spring/root-context.xml</param-value>
+	</context-param>
+
+	<!-- Creates the Spring Container shared by all Servlets and Filters -->
+	<listener>
+		<listener-class>org.springframework.web.context.ContextLoaderListener
+		</listener-class>
+	</listener>
+
+	<!-- Processes application requests -->
+	<servlet>
+		<servlet-name>appServlet</servlet-name>
+		<servlet-class>org.springframework.web.servlet.DispatcherServlet
+		</servlet-class>
+		<init-param>
+			<param-name>contextConfigLocation</param-name>
+			<param-value>/WEB-INF/spring/appServlet/servlet-context.xml
+			</param-value>
+		</init-param>
+		<!-- 404 error처리를 위해 추가 -->
+		<init-param>
+			<param-name>throwExceptionIfNoHandlerFound</param-name>
+			<param-value>true</param-value>
+		</init-param>
+		<load-on-startup>1</load-on-startup>		
+		
+		<!-- File upload 정보 -->
+		<multipart-config>
+			<!-- 임시파일 저장위치 -->
+			<location>C:\\tmp</location>
+			<!-- 최대 업로드크기: 20mb -->
+			<max-file-size>20971520</max-file-size>
+			<!-- 한번에 올릴 수 있는 전체 데이터 크기: 400mb -->
+			<max-request-size>41943040</max-request-size>
+			
+			<file-size-threshold>20971520</file-size-threshold>
+		</multipart-config>
+		
+		
+	</servlet>
+
+	<servlet-mapping>
+		<servlet-name>appServlet</servlet-name>
+		<url-pattern>/</url-pattern>
+	</servlet-mapping>
+
+
+	<!-- 한글처리 -->
+	<filter>
+		<filter-name>encodingFilter</filter-name>
+		<filter-class>
+			org.springframework.web.filter.CharacterEncodingFilter
+		</filter-class>
+		<init-param>
+			<param-name>encoding</param-name>
+			<param-value>UTF-8</param-value>
+		</init-param>
+
+		<init-param>
+			<param-name>forceEncoding</param-name>
+			<param-value>true</param-value>
+		</init-param>
+	</filter>
+	<filter-mapping>
+		<filter-name>encodingFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+
+	<!-- 레이아웃:siteMesh library등록.(버전을 잘 맞추어야한다. 현재 2.4.2버전)-->
+	<filter>
+		<filter-name>sitemesh</filter-name> <!-- 필터이름은 바꿔도 무방함 -->
+		<!-- /WEB-INF/sitemesh.xml을 찾아서 실행할 데이터로 사용 -->
+		<filter-class>
+			com.opensymphony.sitemesh.webapp.SiteMeshFilter
+		</filter-class>
+	</filter>
+	<filter-mapping>
+		<filter-name>sitemesh</filter-name>
+		<!-- url 패턴 : 1. 확장자 기반, 2. 위치 기반. 두종류를 섞으면 안된다. -->
+		<url-pattern>*.do</url-pattern>
+	</filter-mapping>
+	
+</web-app>

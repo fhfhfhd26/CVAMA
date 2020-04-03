@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- namespace 설정 : 중복을 배제시키기 위해서 -->
+<mapper namespace="com.cvama.like.mapper.LikeMapper">
+ <!-- id는 mapper 인터페이스의 메서드와 맞춰준다. -->
+
+<!--  1.좋아요 횟수 출력 -->
+ <select id="getCnt" resultType="java.lang.Integer">
+ 	select likecnt
+ 	from board
+ 	where no =  #{bno}
+ </select>
+ 
+ 
+ <!-- 2. 좋아요 임력  : 본인이 작성한 글만 수정가능 -->
+ <update id="update">
+  update board
+ 	set likecnt = likecnt+1
+ 	where no = #{bno} and NOT EXISTS
+(
+  SELECT
+  ip
+  FROM
+  board_like
+  WHERE
+  ip = #{ip} and
+  bno = #{bno}
+)
+ </update>
+ 
+<!--  3. 좋아요 ip기록 --> 
+
+<insert id="writeIp">
+			insert into board_like(no, bno, ip)
+			values (board_like_seq.nextval, #{bno}, #{ip})
+	</insert>
+
+
+</mapper>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- namespace 설정 : 중복을 배제시키기 위해서 -->
+<mapper namespace="com.cvama.livechat.mapper.LiveChatMapper">
+
+	<!-- id는 mapper 인터페이스의 메서드와 맞춰준다 -->
+	<select id="liveChatList" resultType="com.cvama.livechat.dto.LiveChatDTO">
+		select * from(
+			select rownum rnum, no, content, writer, cDate
+			from (
+				select no, content, writer, cDate
+				from livechat
+				where cDate >= TO_DATE(#{stime}, 'YYYYMMDDHH24miss')
+				order by no asc
+			)
+		)
+	</select>
+	
+	<!-- 채팅 등록 -->
+	<insert id="write" >
+		insert into livechat(no, content, writer) 
+		values(livechat_seq.nextval, #{content}, #{writer}) 
+	</insert>
+	
+	<!-- 채팅 삭제 -->
+	<delete id="delete">
+ 		delete from liveChat
+ 		where no = #{no} and writer = #{writer }
+	</delete>
+</mapper>

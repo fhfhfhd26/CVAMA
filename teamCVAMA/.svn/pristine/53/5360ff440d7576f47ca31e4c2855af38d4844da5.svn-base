@@ -1,0 +1,734 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>    
+ 
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<script type='text/javascript' src='http://www.google.com/jsapi'></script>
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<link href="https://fonts.googleapis.com/css?family=Yeon+Sung&display=swap" rel="stylesheet">
+  <script type='text/javascript'>
+	// 파이 차트
+  google.charts.load('current', {'packages':['corechart']});
+  google.charts.setOnLoadCallback(drawChart);
+
+	// koreamap div
+	var sum = 0;
+	var deathSum = 0;
+	var increaseSum = 0;
+	
+var wjsrnr = [];
+<c:forEach items="${list }" var="dto">
+	sum += ${dto.coronaTrue}
+	deathSum += ${dto.death} 
+	increaseSum += ${dto.increaseC}
+	var wjsrnr2 = [];
+	wjsrnr2.push("${dto.area}", "${dto.coronaTrue}");
+	wjsrnr.push(wjsrnr2);
+</c:forEach>
+wjsrnr.sort(function(a, b) {
+	  return a[1] - b[1];
+	})
+wjsrnr = wjsrnr.reverse();
+var wjsrnrother = sum - (wjsrnr[0][1]*1 + wjsrnr[1][1]*1+ wjsrnr[2][1]*1+ wjsrnr[3][1]*1+ wjsrnr[4][1]*1) ;
+//alert(wjsrnrother);
+//alert(sum);
+function drawChart() {
+	
+  var data = google.visualization.arrayToDataTable([
+    ['Task', 'Hours per Day'],
+    [wjsrnr[0][0],     wjsrnr[0][1]*1],
+    [wjsrnr[1][0],     wjsrnr[1][1]*1],
+    [wjsrnr[2][0],     wjsrnr[2][1]*1],
+    [wjsrnr[3][0],     wjsrnr[3][1]*1],
+    [wjsrnr[4][0],     wjsrnr[4][1]*1],
+    ['other',     wjsrnrother*1]
+   
+  ]);
+  var options = {
+    title: '전국 현황',
+    'width': 300,
+    'height': 350,
+    'chartArea': {'width': '100%', 'height': '80%'},
+    legend :  {textStyle: {color: 'black', fontSize: 14}},
+    titleTextStyle: {
+        color: ('black'),    // any HTML string color ('red', '#cc00cc')
+        fontName: 'Yeon Sung', // i.e. 'Times New Roman'
+        fontSize: 20, // 12, 18 whatever you want (don't specify px)
+        bold: true,    // true or false
+        italic: false   // true of false
+    }
+  };
+  var chart = new google.visualization.PieChart(document.getElementById('koreapiechart'));
+
+  chart.draw(data, options);
+}
+  
+	// 구글 지도
+   google.load('visualization', '1', { 'packages' : [ 'geochart' ] });
+   google.setOnLoadCallback(drawVisualization);
+
+   function drawVisualization() {
+
+		$(".divConfirmed").html("전국 확진자수&emsp;:&emsp;"+sum);
+		$(".divDeath").html("전국 사망자수&emsp;:&emsp;"+deathSum);
+		$(".divIncrease").html("전국 증가&emsp;&emsp;&nbsp;:&emsp;+"+increaseSum);
+		
+    var data = new google.visualization.DataTable();
+
+    data.addColumn('string', 'Country');
+    data.addColumn('number', 'Value');
+    data.addColumn({
+     type : 'string',
+     role : 'tooltip'
+    });
+
+
+	var korea_region = [["서울",'KR-11','Seoul'],
+		["부산",'KR-26','Busan'],
+		["대구",'KR-27','Daegu'],
+		["인천",'KR-28','Incheon'],
+		["광주",'KR-29','Gwangju'],
+		["대전",'KR-30','Daejeon'],
+		["울산",'KR-31','Ulsan'],
+		["경기",'KR-41','Gyeonggi'],
+		["강원",'KR-42','Gangwon'],
+		["충북",'KR-43','North Chungcheong'],
+		["충남",'KR-44','South Chungcheong'],
+		["전북",'KR-45','North Jeolla'],
+		["전남",'KR-46','South Jeolla'],
+		["경북",'KR-47','North Gyeongsang'],
+		["경남",'KR-48','South Gyeongsang'],
+		["제주",'KR-49','Jeju'],
+		["제주",'KR-49','Jeju'],
+		["세종",'KR-50','Sejong'],
+		["검역",'KR-50','Sejong'],
+		];
+
+var ivalue = [];
+
+<c:forEach items="${list }" var="dto">
+
+	var area;
+	var code;
+	var engl;
+	for(i=0;i<20;i++){
+		if(korea_region[i][0]=="${dto.area}"){
+			area=korea_region[i][0];
+			code=korea_region[i][1];
+			engl=korea_region[i][2];
+			break;
+		}
+	}
+	
+   totalrate = coloring("${dto.coronaTrue}");
+     
+   data.addRows([ [ {
+	
+	   v : code,  // 해당 도시코드( KR-11은 서울)
+	   f : engl    // 마우스 올렸을때 오버되는 데이터 (Seoul Obama (D) 라고 뜬다)
+	    }, totalrate,
+	    "${dto.coronaTrue}\n"+"+${dto.increaseC}" 
+	    ] ]);
+   ivalue[code] = [];
+	    ivalue[code][0] = "${dto.coronaTrue}";
+	    ivalue[code][1] = "${dto.death}";
+	    ivalue[code][2] = "${dto.increaseC}";
+	    ivalue[code][3] = "${dto.rate}";
+	    ivalue[code][4] = "${dto.area}";
+	    ivalue[code][5] = sum - "${dto.coronaTrue}";
+	
+</c:forEach>
+
+    var options = {
+
+     backgroundColor : {
+
+      fill : '#FFFFFF',
+      stroke : '#FFFFFF',
+      strokeWidth : 0
+     },
+
+     colorAxis : {
+      minValue : 0,
+      maxValue : 5,
+		// 지역 색깔
+      colors : ['#FFCCCC','#FF9999','#FF0000','#CC3333','#660000','#FFCCCC']
+     
+     },
+     
+     legend : 'none',
+
+     backgroundColor : {
+
+      fill : '#FFFFFF', // 지도 전체 빽그라운드
+      stroke : '#FFFFFF',
+      strokeWidth : 0
+     },
+
+     datalessRegionColor : 'transparent', // 지도에서 전체 땅 색깔
+     displayMode : 'regions',
+     enableRegionInteractivity : 'true',
+     resolution : 'provinces',
+
+     sizeAxis : {
+
+      minValue : 1,
+      maxValue : 1,
+      minSize : 10,
+      maxSize : 10
+     },
+
+     region : 'KR',       // <--- 중요! 해당 나라의 위치 (US로 바꾸면 맵이 미국으로 뜬다)
+
+     keepAspectRatio : true,
+
+     width : 1000,
+     height : 800,
+     tooltip : {
+     textStyle : {
+     color : '#444444' // hover 글씨 색깔
+      },
+     trigger : 'hover'
+     }
+
+    };
+
+    function coloring(coronaTrue){
+        var totalrate = coronaTrue / sum * 100;
+            if (totalrate > 50)	totalrate = 4;
+            else if (totalrate > 10) totalrate = 3;
+            else if (totalrate > 3) totalrate = 2;
+            else if (totalrate > 0.5) totalrate = 1;
+            else totalrate = 0;
+       	return totalrate;
+    }
+
+    var chart = new google.visualization.GeoChart(document.getElementById('visualization'));
+
+    google.visualization.events.addListener(chart, 'select',
+
+      function() {
+       var selection = chart.getSelection();
+       if (selection.length == 1) {
+        var selectedRow = selection[0].row;
+        var selectedRegion = data.getValue(selectedRow, 0);
+
+        if (ivalue[selectedRegion] != '') {
+			//alert(ivalue[selectedRegion][0]);
+			//alert(ivalue[selectedRegion][5]);
+		// 강제 타입 변환	
+		var localcoronatrue = ivalue[selectedRegion][0]*1;
+		var othercoronatrue = ivalue[selectedRegion][5]*1;
+		//alert(localcoronatrue);
+		//alert(ivalue[selectedRegion][4]);
+         $(".divConfirmed").html("확진자수&emsp;&emsp;&emsp;:&emsp;"+ivalue[selectedRegion][0]);
+         $(".divDeath").html("사망자수&emsp;&emsp;&emsp;:&emsp;"+ivalue[selectedRegion][1]);
+         $(".divIncrease").html("전일대비증가&nbsp;&nbsp;&nbsp;:&emsp;+"+ivalue[selectedRegion][2]);
+         $(".divRate").html("10만명당 발생률&nbsp;:&emsp;"+ivalue[selectedRegion][3]);
+         
+         $("#koreapiechart").html(
+                 function drawChart() { 
+  
+        	    	  var data = google.visualization.arrayToDataTable([
+        	    		  ['Task', 'Hours per Day'],
+        	    		    [ivalue[selectedRegion][4],     localcoronatrue],
+        	    		    ['other',     othercoronatrue]
+        	    		    
+        	    	  ]);
+
+        	    	  var options = {
+        	    		slices: { 1: { offset: 0.1 },
+        	    				  1: { color: '#f5f5f5' }
+    				   },
+    				   pieSliceTextStyle: {
+    			            color: 'black',
+    			        },
+        	    		pieHole: 0.4,
+        	    	    title: '지역 현황',
+        	    	    'width': 300,
+        	            'height': 350,
+        	            'chartArea': {'width': '100%', 'height': '80%'},
+        	            'sliceVisibilityThreshold':0,
+        	            legend :  {textStyle: {color: 'black', fontSize: 14}},
+        	            titleTextStyle: {
+        	                color: ('black'),    // any HTML string color ('red', '#cc00cc')
+        	                fontName: 'Yeon Sung', // i.e. 'Times New Roman'
+        	                fontSize: 20, // 12, 18 whatever you want (don't specify px)
+        	                bold: true,    // true or false
+        	                italic: false   // true of false
+        	            }
+        	    	  };
+
+        	    	  var chart = new google.visualization.PieChart(document.getElementById('koreapiechart'));
+
+        	    	  chart.draw(data, options);
+        	    	}
+             );
+    	  }
+       }
+      });
+
+    chart.draw(data, options);
+
+   }
+
+  </script>
+  <script type="text/javascript">
+  var replyService = (function() {
+
+		// getList를 저장하는 프로그램 작성 - 필요한 데이터 param(no, page), callback-처리되는 함수, error-오류가 났을때 객체 
+		function getList(param, callback, error){
+				var page = param.page;
+
+				// $.getJSON
+				$.getJSON(
+					//데이터 요청 URI
+					"/clocalrep/pages/" + page + ".json",
+					// 데이터 가져오기를 성공하면 처리되는 함수. data : 서버에서 넘어오는 데이터
+					function(data){
+						// 데이터를 가져오기를 성공하면 실행되는 하무를 밖에서 선언해서 넣어주는 경우 처리
+						if(callback){
+							callback(data);
+						}
+					}
+				// 데이터 가져오는 것을 실패했을 때의 처리
+				).fail(function(xhr, status, err){
+					if(error){
+						error();
+					}
+				});
+			}
+
+		// 날짜 timestamp 숫자를 받아서 날짜 형식으로 리턴해주는 함수 -> json데이터로 받을때
+		function displayDate(timeValue){
+
+			var today = new Date(); // 오늘 날짜 셋팅
+			// today.getTime() - timeValue // 현재 날짜시간과 댓글 작성일의 차이를 알아낸다
+			// 차이가 24시간이 지나지 않았으면 시간을 지낫으면 날짜를 표시할 수 있도록 할 수 있다.
+
+			var dateObj = new Date(timeValue); // 댓글을 작성한 날짜 객체
+			var str = "";
+			str += dateObj.getFullYear()+ ".";
+			str += (dateObj.getMonth() + 1) + "."; // month는 0~11을 사용하기때문에 +1
+			str += dateObj.getDate();
+
+			// [yy, mm, dd].join("."); - 중간에 .을 이용해서 이어 붙인다.
+			return str;
+
+		}
+
+		// 댓글 등록 처리 함수 선언
+		function add(reply, callback, error){
+
+			// ajax를 이용해서 데이터 넘기기 처리 - load(), #.getJSON, $.ajax()
+			$.ajax({
+				type : 'post',
+				url : '/clocalrep/new',
+				// data : ?뒤에 쿼리를 의미 k=v&&k=v -> JSON.stringify(jsondata)로 변환
+				data : JSON.stringify(reply),
+				/* data : reply, */
+				contentType : "application/json; charset=utf-8",
+				// 등록이 성공했을 때 처리 -> 댓글 리스트를 다시 불러와서 표시한다 
+				success : function(result, status, xhr){
+					if (callback){
+						callback(result);
+					}
+				},
+				// 등록 오류가 발생된 경우 처리
+				error :function(xhr, status, er){
+					if(error){
+						eroor(er);
+					}
+				}
+			})
+		}
+
+		// 댓글 수정 처리 함수 선언
+		function update(reply, callback, error){
+
+			// ajax를 이용해서 데이터 넘기기 처리 - load(), #.getJSON, $.ajax()
+			$.ajax({
+				type : "patch",
+				url : "/clocalrep/" + reply.no,
+				// data : ?뒤에 쿼리를 의미 k=v&&k=v -> JSON.stringify(jsondata)로 변환
+				data : JSON.stringify(reply),
+				/* data : reply, */
+				contentType : "application/json; charset=utf-8",
+				// 등록이 성공했을 때 처리 -> 댓글 리스트를 다시 불러와서 표시한다 
+				success : function(result, status, xhr){
+					if (callback){
+						callback(result);
+					}
+				},
+				// 등록 오류가 발생된 경우 처리
+				error :function(xhr, status, er){
+					if(error){
+						eroor(er);
+					}
+				}
+			})
+		}
+		function repDelete(reply, callback, error){
+
+			// ajax를 이용해서 데이터 넘기기 처리 - load(), #.getJSON, $.ajax()
+			$.ajax({
+				type : "post",
+				url : "/clocalrep/" + reply.no,
+				// data : ?뒤에 쿼리를 의미 k=v&&k=v -> JSON.stringify(jsondata)로 변환
+				data : JSON.stringify(reply),
+				/* data : reply, */
+				contentType : "application/json; charset=utf-8",
+				// 등록이 성공했을 때 처리 -> 댓글 리스트를 다시 불러와서 표시한다 
+				success : function(result, status, xhr){
+					if (callback){
+						callback(result);
+					}
+				},
+				// 등록 오류가 발생된 경우 처리
+				error :function(xhr, status, er){
+					if(error){
+						eroor(er);
+					}
+				}
+			})
+		}
+		
+		return {
+			// 댓글 리스트가 처리된 결과를 만들어 내는 함수
+			add : add,
+			getList : getList,
+			displayDate : displayDate,
+			update : update,
+			repDelete : repDelete
+			};
+	})();
+  $(function(){
+
+		// 댓글 리스트를 표시할 객체 저장
+		var replyUL = $(".chat")
+		
+		// 댓글 리스트를 가져와서 보여주는 함수 호출
+		showList(1);
+		
+//		alert(replyService.getList);
+	//  댓글 리스트를 보여주는 function : 글보기를 호출하면 바로 보여주는 부분이므로 페이지는 1페이지이다.
+		function showList(page){
+			replyService.getList(
+				{page:page},
+				function(data){
+					replist = data.replyList;
+					var str = "";
+					// 댓글이 없는 경우의 처리
+					if(replist == null || replist.length == 0){
+						replyUL.html("<li class='left clearfix'>댓글 존재하지 않습니다.</li>")
+						return;
+					}
+					// 댓글이 있는 경우의 처리
+					for(var i = 0; i < replist.length; i++){
+						var dto = replist[i];
+						str += "<li class='left clearfix' data-no='"+dto.no+"'>";
+						str += "<div>";
+						str += "<div class='header'>";
+						str += "<strong class='primary-font writer'>"+dto.writer+"</strong>";
+						str += "<small class='pull-right text-muted'>"+replyService.displayDate(dto.writeDate)+"</small>";
+						str += "</div>";
+						str += "<p class='content'>"+dto.content+"</p>";
+						str += "<span class='pull-right'>"
+								+"<button class='btn btn-default btn-xs replyUpdateBtn'>수정</button>"
+								+"<button class='btn btn-default btn-xs deleteUpdateBtn' data-no='"+dto.no+"'>삭제</button>"
+								+"</span>";
+						str += "<div class='input-group' style='display:none' id='deletepw'>";
+						str += "<i class='glyphicon glyphicon-lock' style='float:left; font-size:19px;'></i>";
+						str += "<input id='deletepwinput' style='height:22px; width:100px;' type='password' class='form-control' name='pw' placeholder='Password'>";
+						str += "</div>";
+						str += "</div>";
+						str += "<hr>";
+						str += "</li>";
+					} 
+
+					str += "<div class='replyPaging'>";
+					str += pageNav(data.pageObject);
+					str += "</div>";
+					
+					replyUL.html(str);
+					
+					function pageNav(pageObject){
+						var page = pageObject.page;
+						var totalPage = pageObject.totalPage;
+						var startPage = pageObject.startPage;
+						var endPage = pageObject.endPage;
+						var str = "";
+						
+						str += "<ul class='pagination'>";
+						str += "<li class='pageBtn pageff' data-page=1>&lt;&lt;</li>";
+						if(startPage>1){
+							str += "<li class='pageBtn pagef' data-page=" + (startPage-1) + "> &lt;</li>";
+						}
+						for(i=startPage;i<endPage+1;i++){
+						str += "<li class='pageBtn";
+							if(page==i){
+								str += " active";
+							}
+							str += "' data-page=" + i + "> " + i + "</li>";
+						}
+						if(endPage<totalPage){
+							str += "<li class='pageBtn pageb' data-page=" + (endPage+1) + "> &gt;</li>";
+						}
+						str += "<li class='pageBtn pagebb' data-page=" + totalPage +"> &gt;&gt;</li>";
+						str += "</ul>";
+
+						return str;
+					}
+				}
+			);
+		}
+
+		// 댓글 처리에 대한 이벤트 처리
+		$("#writeReplyBtn").click(function(){
+
+			$("#usr").attr("readonly", false);
+			$("#no").val("");		
+			$("#comment").val("");		
+			$("#usr").val("");
+			$("#pwd").val("");
+			$("#submitBtn").text("Submit");
+			$("#submitBtn").attr("type", "submit");
+			// 모달 창을 보여주자
+			$("#writerep").show();
+		});
+		
+		// 댓글 등록 버튼 클릭 이벤트 -> form의 데이터를 넘기는 이벤트
+		$("#writeform").submit(function(){
+			// Ajax로 넘길 데이터를 가저온다
+			var reply={
+				content : $("#comment").val(),
+				writer : $("#usr").val(),
+				pw : $("#pwd").val()
+			}
+			replyService.add(
+				reply,
+				function(result){
+					// 결과를 경고창으로 보여준다. -> ReplyController에서 리턴해 준다.
+					alert(result);
+					$("#comment").val("");		
+					$("#usr").val("");
+					$("#pwd").val("");
+					// 사용을 한 모달차으이 입력란을 비워 둔다.
+					//$("#updateModal").find("input, textarea").val("");
+					// 댓글 리스트를 다시 뿌란다.
+					$("#writerep").hide();
+					showList(1);
+				}
+			);
+			// submit을 무시 시킨다. -> Ajax처리를 하기 위해서
+			return false;
+		});
+		
+		// 댓글의 수정, 삭제 버튼 처리 -> Ajax 후에 나타나는 버튼 이므로 여기서 직접 찾을 때는 Ajax 전이므로 적용 불가
+		// 그래서 On(이벤트, 선택자, 함수) : 선택자는 find()에 의해 찾기가 진행이 된다. 
+		$(".chat").on("click", ".replyUpdateBtn", function(){
+			var replyRow = $(this).closest("li");
+			var no = replyRow.data("no");
+			var content = replyRow.find(".content").text();
+			var writer = replyRow.find(".writer").text();
+
+			// 모달 창에 데이터 셋팅
+			$("#no").val(no);		
+			$("#comment").val(content);		
+			$("#usr").val(writer);
+			$("#pwd").val("");
+			// 작성자는 수정 불가로 처리
+			$("#usr").attr("readonly", "readonly");
+
+			// 수정을 위해서 submit에서 동작이 되지 않는 button으로 변경
+			$("#submitBtn").attr("type", "button");
+			// 버튼 이름을 수정으로 변경		
+			$("#submitBtn").text("Update");
+			// 비밀번호는 호가인용이므로 입력된 내용이 화면에 나타 나지 않는다
+			$("#pwd").attr("type", "password");
+
+			// 모달창을 화면에 표시한다
+			$("#writerep").show();		
+		});
+
+  		// 삭제 버튼 클릭시 비빌번호창 오픈
+		$(".chat").on("click", ".deleteUpdateBtn", function(){
+			var replyRow = $(this).closest("li");  
+			var no = replyRow.data("no");
+				if(no==$(this).data("no"))
+					
+					var updateBtn = replyRow.find(".replyUpdateBtn");
+					updateBtn.text("Cancle");  
+					updateBtn.attr("class", "btn btn-default btn-xs deleteclose");
+
+					var deleteBtn = replyRow.find(".deleteUpdateBtn");
+					deleteBtn.text("Delete");
+					deleteBtn.attr("class", "btn btn-default btn-xs repdelete");
+					deleteBtn.attr("type", "submit");
+
+					var deleteInput = replyRow.find("#deletepw");
+					deleteInput.show();	
+		});
+		// 삭제처리
+		$(".chat").on("click", ".repdelete", function(){
+			var replyRow = $(this).closest("li");  
+			var reply={
+					no : replyRow.data("no"),
+					pw : replyRow.find("#deletepwinput").val()
+				}
+			replyService.repDelete(
+					reply,
+					function(result){
+						// 결과를 경고창으로 보여준다. -> ReplyController에서 리턴해 준다.
+						alert(result);
+						showList(1);
+					}
+			);
+		});
+		
+		// 삭제창 닫기
+		$(".chat").on("click", ".deleteclose", function(){
+			var replyRow = $(this).closest("li");  
+
+				var updateBtn1 = replyRow.find(".deleteclose");
+				updateBtn1.text("수정");  
+				updateBtn1.attr("class", "btn btn-default btn-xs replyUpdateBtn");
+
+				var deleteBtn1 = replyRow.find(".repdelete");
+				deleteBtn1.text("삭제");
+				deleteBtn1.attr("class", "btn btn-default btn-xs deleteUpdateBtn");
+				deleteBtn1.attr("type", "button");
+
+				// 취소시 빈공간 제거	
+				$("#deletepwinput").val("");   
+				
+				var deleteclose = replyRow.find("#deletepw");
+				deleteclose.hide();	
+
+					
+		});
+
+		 
+		// 입력 창 닫기 버튼 
+		$(".close").click(function(){
+
+			$("#usr").attr("readonly", false);
+			$("#no").val("");		
+			$("#comment").val("");		
+			$("#usr").val("");
+			$("#pwd").val("");
+			$("#writerep").hide();
+			});
+	
+		$("#submitBtn").click(function(){
+			// 같은 버튼을 등록과 삭제에서도 사용하기 떄문에 등록과 삭제인 경우는 처리를 안하도록 시킨다.
+			if($(this).text()=="Submit" || $(this).text()=="삭제")
+				return;
+			// Ajax로 넘길 데이터를 가져온다.
+			var reply ={
+				no :  $("#no").val(),
+				content :  $("#comment").val(),
+//				writer: $("#modal_writer").val(),
+				pw : $("#pwd").val()
+			}
+	 		// alert(JSON.stringify(reply));
+			replyService.update(
+				reply,
+				function(result){
+					// 결과를 경고창으로 보여준다. -> ReplyController에서 리턴해준다.
+					alert(result);
+					// 사용을한 모달창의 입력란을 비워둔다.
+					$("#writerep").find("input, textarea").val("");
+					// 모달 창은 숨긴다.
+					$("#writerep").hide();
+					
+					// 댓글 리스트를 다시 뿌린다.
+					showList(1);
+				}
+			);
+		});
+		$(".chat").on("click", ".pagination > li:not('.active')",
+			function() {
+				var page = $(this).data("page");
+				showList(page);
+		});
+	});
+
+  </script>
+<style>
+#koreamap{
+  position:absolute;
+  margin-left:750px;
+  z-index:10;
+  float:right;
+  height:80%;
+  width:500px;
+  background-color:white
+}
+ul{
+  list-style:none;
+  	}
+.pageBtn:hover{
+  	cursor:pointer   	
+  	}
+.active{
+	color: red
+	}
+.corona {
+	font-family: 'Yeon Sung', cursive;
+	font-size: 23px;
+}
+</style>
+  
+  </head>
+  <body>
+  <div>
+  <div id='koreamap' style="width: 500px; height: 200px;">
+  	<div id='koreapiechart' style="width:300; z-index:11;"></div>
+  	<div class="divConfirmed corona" ></div>
+  	<div class="divDeath corona" ></div>
+  	<div class="divIncrease corona" style=" color:red;"></div> 
+  	<div class="divRate corona" ></div>
+  </div>
+  <div style="z-index:1;float:left" id='visualization'></div>
+  <div class="container" style="width: 400px; height: 800px; position:absolute; margin-left:1050px; float:right; z-index:100;">
+	<div class="panel panel-default">
+		<div class="panel-heading">
+			<i class="fa fa-comments fa-fw"></i>Reply
+			<button id="writeReplyBtn" class="btn btn-primary btn-xs pull-right">New</button>
+		</div>
+		<div class="panel-body">
+			<form id="writeform">   
+			  <input name="no" id="no" type="hidden">
+				<div style="display:none;" id='writerep'>
+				  <div class="form-group">
+					  <label for="usr">Name:</label>
+					  <input type="text" class="form-control" id="usr" name="writer">
+				  </div>
+				  <div class="form-group">
+ 						 <label for="comment">Comment:</label>
+  						 <textarea class="form-control" rows="2" id="comment" name="content"></textarea>
+						 </div>
+				  <div class="form-group">
+					  <label for="pwd">Password:</label>
+					  <input type="password" class="form-control" id="pwd" name="pw">
+				  </div>
+				  <div>
+				  <button class="btn btn-default btn-sm" id="submitBtn">Submit</button>
+				  <button type="button" class="close" data-dismiss="modal">&times;</button>
+				  <br>
+				  </div>
+				</div>
+			</form>
+			<div>
+			<ul class="chat">
+			</ul>
+			</div>
+		</div>
+	</div>
+  </div>
+</div>
+</body></html>

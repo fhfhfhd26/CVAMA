@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+    <!-- namespace 설정 : 중복을 배제시키기 위해서 -->
+	<mapper namespace="com.cvama.clocal.mapper.ClocalMapper">
+	<!-- id는 mapper 인터페이스의 메서드와 맞춰준다 -->
+	<select id="list" resultType="com.cvama.clocal.dto.ClocalDTO">
+		select * from(
+			select rownum rnum, no, area, coronatrue, death, safe, rate, increaseC
+			from (
+				select no, area, coronatrue, death, safe, rate, increaseC
+				from clocal
+				order by no desc
+			)
+		)
+	</select>
+	</mapper>
+    
+    
+    
+    
+    
+    
+    
+    

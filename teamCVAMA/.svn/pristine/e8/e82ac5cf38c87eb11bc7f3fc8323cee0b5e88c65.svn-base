@@ -1,0 +1,473 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+	pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>마스크</title>
+<style>
+.infoScroll{
+	position:absolute;
+	width:506px;
+	height:806px;
+	z-index:2;
+	background-color:white;
+	display:none
+}
+.infoContainer{
+	width:496px;
+	height:796px;
+	margin:5px;
+	background-color:white
+}
+.infoInner{
+	margin:20px 3px 20px 3px
+}
+.infoInner-title{
+	font-weight:bolder
+}
+.labelStr{
+	font-weight:bold
+}
+.infoInner-timeline{
+	height: 150px;
+}
+.loading{
+	margin-left:220px;
+	margin-top:20px
+}
+.timeBtn{
+	margin: 2px
+}
+.closeBtn{
+	position:absolute;
+	top:15px;
+	right:15px
+}
+.closeBtn:hover{
+	cursor:pointer
+}
+.searchBtn{
+	position:absolute;
+	top:750px;
+	left:50%;
+	margin-left: -80px;
+	z-index:20
+}
+.addrSearchDiv{
+	position:absolute;
+	width:400px;
+	top:790px;
+	left:50%;
+	margin-left: -200px;
+	z-index:20
+}
+.infoContent{
+	text-align: center;
+	font-size: 12pt;
+	font-weight: bolder;
+	padding: 4px
+}
+#map{
+	width:100%;
+	height:806px;
+	z-index:0
+}
+img:hover{
+	transform: scale(1.2)
+}
+</style>
+<script type="text/javascript"
+src="//dapi.kakao.com/v2/maps/sdk.js?appkey=81764986defd7e840545ca7d0b5372a4&libraries=services">
+</script>
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js">
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+<body>
+<div class="infoScroll">
+	<i class="fa fa-close closeBtn"
+	onclick="closeScroll();" style="font-size:24px"></i>
+	<div class="container-fluid infoContainer">
+		<div class="infoInner">
+	    <h1><span class="infoInner-title">이름</span></h1>
+	  </div>
+	  <div class="infoInner">
+	    <h2><span class="labelStr">예상 잔량: </span>
+	    <span class="infoInner-remain">예상 잔량</span></h2>
+	  </div>
+	  <div class="infoInner">
+	    <h4><span class="infoInner infoInner-addr">주소</span></h4>
+	  </div>
+	  <div class="infoInner">
+	    <h5><span class="labelStr">최근 입고시각: </span>
+	    <span class="infoInner-stock">최근 입고시각</span></h5>
+	  </div>
+	  <div class="infoInner">
+	    <h5><span class="labelStr">업데이트 시각: </span>
+	    <span class="infoInner-created">업데이트 시각</span></h5>
+		</div>
+		<div class="infoInner">
+			<h5><span class="labelStr">이전 재고 보기</span></h5>
+			<div class="infoInner-timeBtnDiv">버튼</div>
+			<div class="infoInner-timeline" id="timeline"></div>
+		</div>
+	</div>
+</div>
+<input class="btn btn-default searchBtn"
+type="button" onclick="getInfo();" value="현재 위치에서 검색"/>
+<div class="floatDiv addrSearchDiv">
+  <div class="container-fluid input-group">
+    <input type="text" class="form-control addrInput" placeholder="주소를 입력하세요"/>
+    <div class="input-group-btn">
+      <button class="btn btn-default addrSearchBtn" type="submit">
+      	<i class="glyphicon glyphicon-search"></i></button>
+    </div>
+  </div>
+</div>
+<div id="map"></div>
+<script>
+var mapContainer = document.getElementById('map'), // 지도를 표시할 div
+    mapOption = { 
+        center: new kakao.maps.LatLng(37.50092255804644, 126.8847970328552), // 지도의 중심좌표
+        level: 3 // 지도의 확대 레벨
+    };
+var map = new kakao.maps.Map(mapContainer, mapOption); // 지도를 생성합니다
+var latlng = map.getCenter();
+//주소-좌표 변환 객체를 생성합니다
+var geocoder = new kakao.maps.services.Geocoder();
+
+function add_date(i){
+	var currentDate; // 계산된 날
+	currentDate = this.getDate() + i*1;  // 현재 날짜에 더해(빼)줄 날짜를 계산
+	this.setDate(currentDate);  // 계산된 날짜로 다시 세팅
+}
+Date.prototype.addDate = add_date; // Date 객체에 메서드 정의
+var today = new Date();
+var clickDate;
+var stores = null;
+var storeMarkers = [];
+var selectedMarker = null;
+var dateRows = [];
+
+// 지도가 이동, 확대, 축소로 인해 중심좌표가 변경되면 마지막 파라미터로 넘어온 함수를 호출하도록 이벤트를 등록합니다
+kakao.maps.event.addListener(map, 'center_changed', function() {
+
+    // 지도의  레벨을 얻어옵니다
+    var level = map.getLevel();
+
+    // 지도의 중심좌표를 얻어옵니다 
+    latlng = map.getCenter(); 
+
+//    var message = '<p>지도 레벨은 ' + level + ' 이고</p>';
+//    message += '<p>중심 좌표는 위도 ' + latlng.getLat() + ', 경도 ' + latlng.getLng() + '입니다</p>';
+
+//    var resultDiv = document.getElementById('result');
+    
+//    resultDiv.innerHTML = message;
+});
+
+function getInfo(){
+	setMarkers(null);
+	stores = null;
+	storeMarkers = [];
+	//커피숍 마커들의 지도 표시 여부를 설정하는 함수입니다
+	function setMarkers(map) {     
+		storeMarkers.forEach((value)=>{
+			value.setMap(map);
+		}); 
+	}
+	url = 'https://8oi9s0nnth.apigw.ntruss.com/corona19-masks/v1/storesByGeo/json?lat='
+	  +latlng.getLat()+'&lng='+latlng.getLng();
+	$.getJSON(url, function(data) {
+		$("#stores").html('');
+		stores = data.stores;
+		stores.forEach((value)=>{
+	    var imageSize = new kakao.maps.Size(20, 20),
+	    imageOptions = {}
+	    
+	    position = new kakao.maps.LatLng(value.lat, value.lng);
+			// 마커이미지와 마커를 생성합니다
+			if(value.remain_stat=='plenty'){
+				markerImageSrc = greenMarkerImageSrc;
+				markerCheckImageSrc = greenCheckMarkerImageSrc;
+			}	else if(value.remain_stat=='some'){
+				markerImageSrc = yellowMarkerImageSrc;
+				markerCheckImageSrc = yellowCheckMarkerImageSrc;
+			}	else if(value.remain_stat=='few'){
+				markerImageSrc = redMarkerImageSrc;
+				markerCheckImageSrc = redCheckMarkerImageSrc;
+			} else{
+				markerImageSrc = greyMarkerImageSrc;
+				markerCheckImageSrc = greyCheckMarkerImageSrc;				
+			}
+			
+			var markerImage = createMarkerImage(
+				markerImageSrc, imageSize, imageOptions);
+			var markerCheckImage = createMarkerImage(
+					markerCheckImageSrc, imageSize, imageOptions);
+			var marker = createMarker(position, markerImage);
+			marker.store = value;
+			marker.normalImage = markerImage;
+			marker.checkImage = markerCheckImage;
+			
+			// 생성된 마커를 커피숍 마커 배열에 추가합니다
+			storeMarkers.push(marker);
+
+			//마커를 클릭했을 때 마커 위에 표시할 인포윈도우를 생성합니다
+			if(value.name.length>8){
+				value.iwContent = '<div class="infoContent">'+value.name.substr(0,8)+'..</span>'
+			}else{
+				value.iwContent = '<div class="infoContent">'+value.name+'</span>'	
+			}
+
+			// 인포윈도우를 생성합니다
+			value.infowindow = new kakao.maps.InfoWindow({
+				content : value.iwContent
+			});
+			//마커에 클릭이벤트를 등록합니다
+			kakao.maps.event.addListener(marker, 'click', function(){
+			  if (selectedMarker!=null) {
+			  	if(selectedMarker.store.code==marker.store.code){
+			      marker.setImage(marker.normalImage);
+			    	selectedMarker = null;
+			    	$(".infoScroll").toggle('slide');
+			  	}else{
+			      // 클릭된 마커를 현재 클릭된 마커 객체로 설정합니다
+			      selectedMarker.setImage(selectedMarker.normalImage);
+			      selectedMarker = marker;
+			      selectedMarker.setImage(selectedMarker.checkImage);
+				    showList(marker);
+			    }
+			  }else{
+			    // 클릭된 마커를 현재 클릭된 마커 객체로 설정합니다
+			    selectedMarker = marker;
+			    marker.setImage(marker.checkImage);
+			    showList(marker);
+					$(".infoScroll").toggle('slide');
+					// 마커 위에 인포윈도우를 표시합니다
+			  }
+			});
+			kakao.maps.event.addListener(marker, 'mouseover', makeOverListener(map, marker, value.infowindow));
+	    kakao.maps.event.addListener(marker, 'mouseout', makeOutListener(value.infowindow));	
+		});
+		setMarkers(map);	
+	});
+}
+
+// getList를 저장하는 프로그램 작성 -> 필요한 데이터 param(no, page), callback-처리되는 함수, error-오류가 났을때 객체
+function getList(marker, callback, error){
+	var code = marker.store.code;
+	var theDate = clickDate;
+	var theYear = theDate.getFullYear();
+	var theMonth = theDate.getMonth()+1;
+	if(theMonth<10) theMonth = '0'+theMonth;
+	var theDay = theDate.getDate();
+
+	$.getJSON(
+			// 데이터 요청 URI
+			"/mask/maskMap/" + theYear + theMonth + theDay + "/" + code + ".json",
+			// 데이터 가져오기를 성공하면 처리되는 함수. data : 서버에서 넘어오는 데이터
+			function(data){
+				// 데이터를 가져오기를 성공하면 실행되는 함수를 밖에서 선언해서 넣어주는 경우 처리
+				if(callback){
+					callback(data);
+				}
+			}
+	// 데이터 가져오는 것을 실패했을 때의 처리
+	).fail(function(xhr, status, err){
+		if(err){
+			err();
+		}
+	});
+}
+
+function showList(marker){
+	if(marker.store.remain_stat=='plenty'){
+	  $(".infoInner-remain").html('100~');
+	  $(".infoScroll").css("background-color", "#A9F5BC");
+	}else if(marker.store.remain_stat=='some'){
+	  $(".infoInner-remain").html('30~99');
+	  $(".infoScroll").css("background-color", "#F3F781");
+	}else if(marker.store.remain_stat=='few'){
+	  $(".infoInner-remain").html('10~29');
+	  $(".infoScroll").css("background-color", "#F5A9A9");
+	}else{
+	  $(".infoInner-remain").html('없음');
+	  $(".infoScroll").css("background-color", "#E6E6E6");
+	}
+  $(".infoInner-title").html(marker.store.name);
+  $(".infoInner-addr").html(marker.store.addr);
+  $(".infoInner-created").html(marker.store.created_at);
+  $(".infoInner-stock").html(marker.store.stock_at);
+  var timeBtnStr = "";
+  for(i=0;i<8;i++){
+    inputDate = new Date();
+    inputDate.addDate(-i);
+  	timeBtnStr += "<input class='btn btn-default timeBtn' type='button' ";
+  	timeBtnStr += "data-ago='"+i;
+  	timeBtnStr += "' value='";
+  	if(i==0){
+    	timeBtnStr += "오늘";
+  	}else{
+    	timeBtnStr += inputDate.getMonth()+1;
+    	timeBtnStr += "/";
+    	timeBtnStr += inputDate.getDate();
+    }
+  	timeBtnStr += "'/>";
+  }
+  $(".infoInner-timeBtnDiv").html(timeBtnStr);
+	$(".infoInner-timeline").html("");
+  $(".timeBtn").click(function(){
+		$(".infoInner-timeline").html("<img class='loading' src='../upload/icon/nowloading.gif'>");
+		clickDate = new Date();
+		clickDate.addDate(-$(this).data("ago"));
+  	getList(marker,function(list){
+  		var str = "";
+  		dateRows = [];	
+  		if(list == null || list.length ==0){
+  			$(".infoInner-timeline").html("<div>판매 정보가 존재하지 않습니다.</div>");
+  			return;
+  		}
+  		for(var i = 0; i < list.length; i++){
+  			var dto = list[i];
+  			var created_at = new Date(dto.created_at);
+  			var barColor;
+  			var barName;
+  			var caMonth = created_at.getMonth()+1;
+  			var caDate = created_at.getDate();
+  			var caDay = caMonth+'/'+caDate;
+  			var caHour = created_at.getHours();
+  			var caMin = created_at.getMinutes();
+  			var caMinRemain = caMin%10;
+  			var caMinLower = caMin-caMinRemain;
+  			var caMinUpper = caMin-caMinRemain+10;
+  			
+  			if(dto.remain_stat=='few')	{
+  				barColor = 'red';
+  				barName = '적음(1~30)';
+  			}	else if(dto.remain_stat=='some')	{
+  				barColor = 'yellow';
+  				barName = '약간(31~99)';
+  			}	else	{
+  				barColor = 'green';
+  				barName = '많음(100~)'
+  			}
+  			inRows = [caDay,barName,barColor,
+  				new Date(0,0,0,caHour,caMinLower),
+  				new Date(0,0,0,caHour,caMinUpper)];
+				dateRows.push(inRows);
+  		}
+  		$(".infoInner-list").html(str);
+  		google.charts.load("current", {packages:["timeline"]});
+  		google.charts.setOnLoadCallback(drawChart);
+    });
+  });
+  
+	function drawChart() {
+	  var container = document.getElementById('timeline');
+	  var chart = new google.visualization.Timeline(container);
+		var dataTable = new google.visualization.DataTable();
+		dateRows = getUniqueObjectArray(dateRows, 3);
+	  dataTable.addColumn({ type: 'string', id: 'Position' });
+	  dataTable.addColumn({ type: 'string', id: 'Name' });
+	  dataTable.addColumn({ type: 'string', id: 'style', role: 'style' });
+	  dataTable.addColumn({ type: 'date', id: 'Start' });
+	  dataTable.addColumn({ type: 'date', id: 'End' });
+	  dataTable.addRows(dateRows);
+    var options = {
+    		timeline: { showBarLabels: false },
+        avoidOverlappingGridLines: false,
+        backgroundColor: '#CEE3F6'
+      };
+	  chart.draw(dataTable, options);
+	}
+}
+
+// 인포윈도우를 표시하는 클로저를 만드는 함수입니다 
+function makeOverListener(map, marker, infowindow) {
+  return function() {
+    infowindow.open(map, marker);
+  };
+}
+
+// 인포윈도우를 닫는 클로저를 만드는 함수입니다 
+function makeOutListener(infowindow) {
+  return function() {
+    infowindow.close();
+  };
+}
+
+var greenMarkerImageSrc = '../upload/icon/green.jpg';
+var yellowMarkerImageSrc = '../upload/icon/yellow.jpg';
+var redMarkerImageSrc = '../upload/icon/red.jpg';
+var greyMarkerImageSrc = '../upload/icon/grey.jpg';
+var greenCheckMarkerImageSrc = '../upload/icon/greencheck.jpg';
+var yellowCheckMarkerImageSrc = '../upload/icon/yellowcheck.jpg';
+var redCheckMarkerImageSrc = '../upload/icon/redcheck.jpg';
+var greyCheckMarkerImageSrc = '../upload/icon/greycheck.jpg';
+var loadingImageSrc = '../upload/icon/nowloading.gif';
+
+
+// 마커이미지의 주소와, 크기, 옵션으로 마커 이미지를 생성하여 리턴하는 함수입니다
+function createMarkerImage(src, size, options) {
+  var markerImage = new kakao.maps.MarkerImage(src, size, options);
+  return markerImage;            
+}
+
+// 좌표와 마커이미지를 받아 마커를 생성하여 리턴하는 함수입니다
+function createMarker(position, image) {
+  var marker = new kakao.maps.Marker({
+    position: position,
+    image: image,
+  	clickable: true
+  });
+    
+  return marker;  
+}
+
+function closeScroll(){
+	selectedMarker.setImage(selectedMarker.normalImage);
+	selectedMarker = null;
+	$(".infoScroll").toggle('slide');
+}
+
+function getUniqueObjectArray(array, key) {
+  var tempArray = [];
+  var resultArray = [];
+  for(var i = 0; i < array.length; i++) {
+    var item = array[i];
+    var finder = 0;
+    for(var j = 0; j < tempArray.length; j++){
+      if((tempArray[j].getHours()+''+tempArray[j].getMinutes())==
+        item[key].getHours()+''+item[key].getMinutes()){
+        finder = 1;
+        continue;
+    	}
+    }
+    if(finder==0) {
+    	resultArray.push(item);
+    	tempArray.push(item[key]);
+    }
+  }
+  return resultArray;
+}
+
+function moveByAddress(inputAddress){
+	geocoder.addressSearch(inputAddress, function(result, status) {
+		// 정상적으로 검색이 완료됐으면 
+	 	if (status === kakao.maps.services.Status.OK) {
+	 		var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+	 		map.setCenter(coords);
+	 		latlng = map.getCenter();
+	 	}
+	});
+}
+
+$(".addrSearchBtn").click(function(){
+	var inputAddress = $(".addrInput").val();
+	moveByAddress(inputAddress);
+});
+</script>
+</body>
+</html>

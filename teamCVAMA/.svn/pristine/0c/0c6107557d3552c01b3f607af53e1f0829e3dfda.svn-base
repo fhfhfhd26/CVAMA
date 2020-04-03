@@ -1,0 +1,12 @@
+package com.cvama.clocal.service;
+
+import java.util.List;
+
+import com.cvama.clocal.dto.ClocalDTO;
+
+public interface ClocalService {
+	
+
+	public List<ClocalDTO> list();
+
+}

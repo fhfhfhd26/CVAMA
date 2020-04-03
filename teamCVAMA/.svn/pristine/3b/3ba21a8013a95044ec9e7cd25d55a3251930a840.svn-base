@@ -1,0 +1,90 @@
+package com.cvama.mask.controller;
+
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.cvama.mask.dto.MaskReplyDTO;
+import com.cvama.mask.dto.SalesDTO;
+import com.cvama.mask.service.MaskService;
+import com.cvama.util.page.PageObject;
+
+import lombok.extern.log4j.Log4j;
+
+@Controller
+@RequestMapping("/mask")
+@Log4j
+public class MaskController {
+	
+	@Autowired
+	@Qualifier("masks")
+	private MaskService service;
+	
+	@RequestMapping({"/maskMap.do"})
+	public String maskMap(Model model) {
+		return "mask/maskMap";
+	}
+	
+	@RequestMapping("/maskMap/{date}/{code}")
+	@ResponseBody
+	public ResponseEntity<List<SalesDTO>> remainList(Model model,
+			@PathVariable String date, @PathVariable String code) {
+		return new ResponseEntity<>(service.remainList(date,code),
+				HttpStatus.OK);
+	}
+	
+	//1. 댓글 리스트 - get
+	@RequestMapping("/reply/{code}/{page}")
+	@ResponseBody
+	public ResponseEntity<Map<String, Object>> replyList(Model model,
+			@PathVariable String code, @PathVariable int page) {
+		PageObject pageObject = new PageObject(page, 7, 20);
+		log.info(pageObject);
+		System.out.println(service.replyList(pageObject, code));
+		return new ResponseEntity<>(service.replyList(pageObject, code),
+				HttpStatus.OK);
+	}
+	
+	//2. 댓글 글쓰기 처리
+	// consumes : 전달되는 데이터 지정
+	// produces : 돌려주는 값에 대한 데이터 설정
+	@PostMapping(value = "/reply/new", consumes = "application/json",
+			 produces = "application/text; charset=utf8")
+	public ResponseEntity<String> replyWrite(@RequestBody MaskReplyDTO dto) {
+		log.info(dto);
+		try {
+			service.replyWrite(dto);
+			return new ResponseEntity<>("댓글이 등록되었습니다.", HttpStatus.OK);
+		}
+		catch (Exception e) {
+			return new ResponseEntity<>("댓글 등록 중 오류가 발생되었습니다.\\n"+
+					e.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	@PostMapping(value = "/reply/delete", consumes = "application/json",
+	produces = "application/text; charset=utf8")
+	public ResponseEntity<String> delete(@RequestBody MaskReplyDTO dto) {
+		int result = service.replyDelete(dto);
+		if(result > 0)
+			// 수정이 된 경우의 처리.
+			return new ResponseEntity<>("댓글이 삭제되었습니다.", HttpStatus.OK);
+		else
+			// 수정이 정상적으로 안된 경우 : 비밀번호가 틀림
+			return new ResponseEntity<>("댓글 삭제에 실패하셨습니다.\\n댓글이 수정에 필요한 정보를 확인하세요.",
+					HttpStatus.NOT_ACCEPTABLE);
+	}
+}

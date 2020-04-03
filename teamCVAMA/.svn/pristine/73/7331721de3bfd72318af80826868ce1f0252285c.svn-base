@@ -1,0 +1,12 @@
+package com.cvama.clocal.mapper;
+
+import java.util.List;
+
+import com.cvama.clocal.dto.ClocalDTO;
+
+public interface ClocalMapper {
+
+
+	public List<ClocalDTO> list();
+	
+}

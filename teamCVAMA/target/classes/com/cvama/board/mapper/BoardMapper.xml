@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cvama.board.mapper.BoardMapper">
+	<select id="list" resultType="com.cvama.board.dto.BoardDTO">
+	 	select * from (
+	 		select rownum rnum, no, title, writer, writeDate, hit, reply_cnt, fileName, originNo, groupOrd, groupLayer, likecnt
+	 			 
+	 		from (
+	 			select no, title, writer, writeDate, hit, reply_cnt, fileName, originNo, groupOrd, groupLayer, likecnt
+	 			from board
+	 			<!-- word 프로퍼티가  null이나 "" 가 아니면 검색을 한다. -->
+	 			<if test="word != null and word != ''.toString()">
+		 			where (1=0 
+		 				<include refid="searchCondition" />
+		 			 ) 
+	 			</if>
+	 			order BY originNo DESC, groupOrd ASC
+	 		)
+	 	)
+	 	where rnum between #{startRow} and #{endRow}
+	 </select>
+	 <select id="getTotalRow" resultType="java.lang.Integer">
+	 	select count(*)
+	 	from board
+		<!-- word 프로퍼티가  null이나 "" 가 아니면 검색을 한다. -->
+		<if test="word != null and word != ''.toString()">
+			where (1=0 
+				<include refid="searchCondition" />
+			 ) 
+		</if>
+	 </select>
+	 
+	 <select id="plist" resultType="com.cvama.board.dto.BoardDTO">
+	 	select * from (
+	 		select rownum rnum, no, title, writer, writeDate, hit, reply_cnt, fileName, originNo, groupOrd, groupLayer, likecnt
+	 			 
+	 		from (
+	 			select no, title, writer, writeDate, hit, reply_cnt, fileName, originNo, groupOrd, groupLayer, likecnt
+	 			from board where likecnt >= 10
+	 			<!-- word 프로퍼티가  null이나 "" 가 아니면 검색을 한다. -->
+	 			<if test="word != null and word != ''.toString()">
+		 			 and (1=0 
+		 				<include refid="searchCondition" />
+		 			 ) 
+	 			</if>
+	 			order BY originNo DESC, groupOrd ASC
+	 		)
+	 	)
+	 	where rnum between #{startRow} and #{endRow}
+	 </select>
+	 <select id="getTotalPRow" resultType="java.lang.Integer">
+	 	select count(*)
+	 	from board where likecnt >= 10
+		<!-- word 프로퍼티가  null이나 "" 가 아니면 검색을 한다. -->
+		<if test="word != null and word != ''.toString()">
+			 and (1=0 
+				<include refid="searchCondition" />
+			 ) 
+		</if>
+	 </select>
+	 
+	 <!-- 검색에 필요한 조건 -->
+	 <sql id="searchCondition">
+	 	<!-- mybatis에서 문자열이나 문자 데이터는 "'" 사용하는데 글자가 하나인 경우 char로 취급
+	 	  그래서 .toString()을 사용해서 문자열로 변환 -->
+	 	<if test="key.toString().indexOf('t') >= 0">
+	 		or title like '%' || #{word} || '%' 
+	 	</if>
+	 	<if test="key.toString().indexOf('c') >= 0">
+	 		or content like '%' || #{word} || '%' 
+	 	</if>
+	 	<if test="key.toString().indexOf('w') >= 0">
+	 		or writer like '%' || #{word} || '%' 
+	 	</if>
+	 
+	 </sql>
+	<select id="view" resultType="com.cvama.board.dto.BoardDTO">
+		SELECT * from board where no = #{no}
+	</select>
+	<update id="increaseHit">
+	 	update board
+	 	set hit = hit+1
+	 	where no = #{no}
+ 	</update>
+	<insert id="write">
+		<if test="fileName != null">
+			insert into board(no, title, content, writer, fileName, pw, originNo)
+			values (board_seq.nextval, #{title}, #{content}, #{writer},#{fileName}, #{pw}, board_seq.nextval)
+		</if>
+		<if test="fileName == null">
+			insert into board(no, title, content, writer, pw, originNo)
+			values (board_seq.nextval, #{title}, #{content}, #{writer}, #{pw}, board_seq.nextval)
+		</if>
+	</insert>
+	<update id="setGroupOrd">
+	 	update board
+	 	set groupOrd = groupOrd+1
+	 	where originNo = #{originNo} and groupOrd > #{groupOrd}-1
+ 	</update>
+ 	<insert id="rewrite">
+		<if test="fileName != null">
+			insert into board(no, title, content, writer, fileName, pw, originNo, groupOrd, groupLayer)
+			values (board_seq.nextval, #{title}, #{content}, #{writer},#{fileName}, #{pw}, #{originNo}, #{groupOrd}, #{groupLayer})
+		</if>
+		<if test="fileName == null">
+			insert into board(no, title, content, writer,  pw, originNo, groupOrd, groupLayer)
+			values (board_seq.nextval, #{title}, #{content}, #{writer}, #{pw}, #{originNo}, #{groupOrd}, #{groupLayer})
+		</if>
+	</insert>
+ <update id="update">
+ 	update board
+ 	set title = #{title}, content = #{content}, 
+ 	<if test="fileName != null">
+	 		fileName= #{fileName}, 
+	 	</if>		
+ 		writer = #{writer}
+ 	where no = #{no} and pw = #{pw}
+ </update>
+ <delete id="delete">
+ 	delete from board where no = #{no} and pw = #{pw}
+ </delete>
+ <select id="findnextDNo" resultType="java.lang.Integer">
+		select groupOrd from (select groupOrd from board where groupOrd>#{groupOrd} and originNo = #{originNo} and GroupLayer <![CDATA[ < ]]>= #{groupLayer} order by groupOrd asc) where rownum=1
+</select>
+ <delete id="nextdelete">
+ 	delete from board where originNo = #{originNo} and groupOrd >= #{groupOrd} and groupOrd <![CDATA[ < ]]> #{groupLayer}
+ </delete>
+ <update id="reduceNo">
+ 	update board
+ 	set groupOrd = groupOrd - #{groupLayer}	
+ 	where OriginNo = #{originNo} and groupOrd >= #{groupOrd}
+ </update>
+</mapper>

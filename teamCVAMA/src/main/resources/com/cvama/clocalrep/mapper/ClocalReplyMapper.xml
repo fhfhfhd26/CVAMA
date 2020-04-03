@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- namespace 설정 : 중복을 배제시키기 위해서 -->
+<mapper namespace="com.cvama.clocalrep.mapper.ClocalReplyMapper">
+	<!-- id는 mapper 인터페이스의 메서드와 맞춰준다 -->
+	<!-- 댓글 리스트 -->
+	<select id="replist" resultType="com.cvama.clocalrep.dto.ClocalReplyDTO">
+		select * from(
+			select rownum rnum, no, content, writer, writeDate
+			from (
+				select no, content, writer, writeDate
+				from clocal_rep
+				order by no desc
+			)
+		)
+		where rnum between #{pageObject.startRow} and #{pageObject.endRow}
+	</select>
+	<select id="getTotalRow" resultType="java.lang.Integer">
+		select count(*)
+		from clocal_rep
+	</select>
+	<!-- 댓글 등록 -->
+	<insert id="write" >
+		insert into clocal_rep(no, content, writer, pw) 
+		values(clocal_rep_seq.nextval, #{content}, #{writer}, #{pw}) 
+	</insert>
+	<!-- 3. 댓글 수정 -> 비밀번호 부여하여 본인 것 구분하기 -->
+	<update id="update">
+		update clocal_rep set content=#{content}
+		where no = #{no} and pw = #{pw}
+	</update>
+	<delete id="delete">
+		delete from clocal_rep where no = #{no} and pw = #{pw}
+	</delete>
+</mapper>

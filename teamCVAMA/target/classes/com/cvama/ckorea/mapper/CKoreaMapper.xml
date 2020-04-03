@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- namespace 설정 : 중복을 배제시키기 위해서 -->
+<mapper namespace="com.cvama.ckorea.mapper.CKoreaMapper">
+	<!-- id는 mapper 인터페이스의 메서드와 맞춰준다. -->
+	<select id="list" resultType="com.cvama.ckorea.dto.CKoreaDTO">
+		select * from (
+			select rownum rnum, no, cDate cdatt, testTotal, testToday, 
+				coronaTrue, coronaFalse, death, safe, care
+			from ( select no, to_char(cDate, 'yyyy-mm-dd HH') cDate, testTotal, testToday,
+				coronaTrue, coronaFalse, death, safe, care
+		from CKorea order by no asc
+			)
+		)
+	</select>
+</mapper>
